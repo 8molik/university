@@ -1,0 +1,11 @@
+<!-- views/radio.ejs -->
+<label>Wybierz opcję:</label>
+<form action="/submit" method="post">
+  <% for (let option of radioList) { %>
+    <input type="radio" name="option" value="<%= option.value %>" id="<%= option.id %>">
+    <label for="<%= option.id %>">
+      <%= option.text %>
+    </label><br>
+  <% } %>
+  <button type="submit">Wyślij</button>
+</form>

@@ -1,0 +1,45 @@
+<!-- views/index.ejs -->
+<!DOCTYPE html>
+<html lang="en">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <meta http-equiv="X-UA-Compatible" content="ie=edge" />
+    <title>Document</title>
+  </head>
+  <body>
+    <form method="POST">
+      <div>
+        Imię: <input type='text' name='name' value='<%= name %>' />
+        Nazwisko: <input type='text' name='surname' value='<%= surname %>' />
+        Przedmiot:  <input type='text' name='field' value='<%= field %>' />
+      </div>
+      
+      <!-- Table for task numbers and scores -->
+      <table>
+        <thead>
+          <tr>
+            <th>Zadanie</th>
+            <th>Punkty</th>
+          </tr>
+        </thead>
+        <tbody>
+          <% for (let i = 1; i <= 10; i++) { %>
+            <tr>
+              <td>Zadanie <%= i %></td>
+              <td><input type="number" name="task<%= i %>" value="0" /></td>
+            </tr>
+          <% } %>
+        </tbody>
+      </table>
+      
+      <button>Zapisz</button>
+      
+      <% if (locals.message) { %>
+      <div>
+        <%= locals.message %>
+      </div>
+      <% } %>
+    </form>
+  </body>
+</html>
