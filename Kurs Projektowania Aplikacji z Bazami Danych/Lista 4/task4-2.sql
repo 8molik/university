@@ -1,0 +1,4 @@
+USE Test;
+
+BEGIN TRANSACTION;
+UPDATE liczby SET liczba = 100;

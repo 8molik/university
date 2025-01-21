@@ -1,0 +1,19 @@
+Pessymistyczna kontrola współbieżności
+
+Zakłada się, że konflikty są częste, więc blokujemy dostęp do danych przez cały czas trwania transakcji — 
+żadna inna transakcja nie może wpływać na te same dane.
+
+Przykład: Jeśli dwie osoby chcą jednocześnie zarezerwować ten sam bilet na koncert, 
+system blokuje bilet dla jednej osoby, uniemożliwiając rezerwację dla drugiej aż do zakończenia transakcji.
+
+Optymistyczna kontrola współbieżności
+
+Zakłada się, że konflikty są rzadkie, więc nie blokujemy dostępu do danych. 
+Zamiast tego, sprawdzamy, czy nie doszło do konfliktu przy zatwierdzaniu transakcji, 
+a jeśli taki wystąpi, wymuszamy ponowne wykonanie transakcji z zaktualizowanymi danymi.
+
+Przykład: 
+Dwie osoby chcą jednocześnie edytować ten sam dokument tekstowy. 
+Każda z nich wprowadza zmiany w swoim lokalnym edytorze, zakładając, że nie będzie konfliktów. 
+Kiedy obie osoby próbują zapisać dokument, system sprawdza, czy ktoś inny wprowadził zmiany. 
+Jeśli tak, jedna z osób będzie musiała rozwiązać konflikt, na przykład przez połączenie zmian (jak w systemach kontroli wersji, np. Git).

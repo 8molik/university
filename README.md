@@ -21,3 +21,10 @@
 * Wybrane Elementy Praktyki Projektowania Oprogramowania
 * Kurs Rozszerzony Języka Python
 * Metody Implementacji Algorytmów
+
+### Semestr 4:
+* Algorytmy i Struktury Danych (L)
+* Systemy Komputerowe
+* Rachunek Prawdopodobieństwa i Statystyka
+* Ochrona własności intelektualnej
+* Od Mordoru po Matrix. Fantastyczna filozofia polityki

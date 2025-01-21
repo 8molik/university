@@ -1,0 +1,5 @@
+--Transakcja musi spe³niaæ w³aœciwoœci ACID, co oznacza, ¿e:
+--- Wykonuje siê w pe³ni albo wcale (atomicznoœæ). Atomicity
+--- Przenosi dane z jednego spójnego stanu do innego (spójnoœæ). Consistency
+--- Dzia³a niezale¿nie od innych transakcji (izolacja). Isolation
+--- Zapisuje zmiany na sta³e (trwa³oœæ). Durability
