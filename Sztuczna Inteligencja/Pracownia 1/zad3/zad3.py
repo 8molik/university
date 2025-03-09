@@ -1,17 +1,11 @@
 import random
 from collections import Counter
 
-# colors = ['spade', 'club', 'diamond', 'heart']
-# figures = ['ace', 'jack', 'king', 'queen']
-
-colors = ['pik', 'trefl', 'karo', 'kier']
+colors = ['♠', '♦', '♣', '♥']
 numbers = ['2', '3', '4', '5', '6', '7', '8', '9', '10', 'W', 'D', 'K', 'A']
 
-figurant_cards = [(numbers[j], colors[i]) for i in range(len(colors)) for j in range(9)]
-blotkarz_cards = [(numbers[j], colors[i]) for i in range(len(colors)) for j in range(9, len(numbers))]
-
-figurant_hand = random.sample(figurant_cards, 5)
-blotkarz_hand = random.sample(blotkarz_cards, 5)
+blotkarz_cards = [(numbers[j], colors[i]) for i in range(len(colors)) for j in range(9)]
+figurant_cards = [(numbers[j], colors[i]) for i in range(len(colors)) for j in range(9, len(numbers))]
 
 # Simplified rules
 def calculate_hand_score(hand):
@@ -22,19 +16,20 @@ def calculate_hand_score(hand):
     is_straight = True
     same_color = True
     for i in range(1, len(hand)):
-        if numbers.index(hand[i-1][0]) - numbers.index(hand[i][0]):
+        if numbers.index(hand[i-1][0]) - numbers.index(hand[i][0]) != 1:
             is_straight = False
         if hand[i-1][1] != hand[i][1]:
             same_color = False
+    
     if is_straight and same_color:
         return 9
     if card_count_proportions == [4, 1]:
         return 8
     if card_count_proportions == [3, 2]:
         return 7
-    if card_count_proportions == [1, 1, 1, 1, 1] and same_color:
+    if same_color: 
         return 6
-    if is_straight and not same_color: 
+    if is_straight:
         return 5
     if card_count_proportions == [3, 1, 1]:
         return 4
@@ -48,13 +43,42 @@ def calculate_hand_score(hand):
 # We ignore rule of the strongest card, since 
 # figurant cards are always stronger, than blotkarz cards
 def compare_strength(blotkarz, figurant):
-    s1 = calculate_hand_score(blotkarz)
-    s2 = calculate_hand_score(figurant)
-    return 'blotkarz' if s1 > s2 else 'figurant'
+    blotkarz_score = calculate_hand_score(blotkarz)
+    figurant_score = calculate_hand_score(figurant)
+    return 'blotkarz' if blotkarz_score > figurant_score else 'figurant'
 
-calculate_hand_score(figurant_hand)
-calculate_hand_score(blotkarz_hand)
-print(figurant_hand)
-print(blotkarz_hand)
 
-print(compare_strength(figurant_hand, blotkarz_hand))
+def main(n=10000, discard_count=0):
+    figurant_wins = 0
+    blotkarz_wins = 0 
+    for i in range(n):
+        # Create random hands
+        figurant_hand = random.sample(figurant_cards, 5)
+        blotkarz_hand = random.sample(blotkarz_cards, 5)
+        # blotkarz_hand = [('10', '♠'), ('9', '♠'), ('8', '♠'), ('7', '♠'), ('6', '♠')] # 100% zwycięstw
+        # blotkarz_hand = [('10', '♠'), ('3', '♠'), ('5', '♠'), ('6', '♠'), ('2', '♠')] # 92% zwycięstw
+        # blotkarz_hand = [('10', '♠'), ('10', '♣'), ('10', '♥'), ('6', '♠'), ('2', '♠')] # 74% zwycięstw blotkarza
+        # blotkarz_hand = [('10', '♠'), ('10', '♣'), ('10', '♥'), ('10', '♦'), ('2', '♠')] # 98% zwycięstw blotkarza
+        # blotkarz_hand = [('2', '♠'), ('2', '♣'), ('2', '♥'), ('3', '♦'), ('3', '♠')] # 92% zwycięstw blotkarza
+
+        blotkarz_hand = random.sample(blotkarz_hand, 5 - discard_count)
+        remaining_cards = [card for card in blotkarz_cards if card not in blotkarz_hand]
+        new_cards = random.sample(remaining_cards, discard_count)
+        blotkarz_hand += new_cards
+
+        calculate_hand_score(figurant_hand)
+        calculate_hand_score(blotkarz_hand)
+
+        if compare_strength(blotkarz_hand, figurant_hand) == 'blotkarz':
+            blotkarz_wins += 1
+        else: 
+            figurant_wins += 1
+
+    print(calculate_hand_score([('10', '♠'), ('6', '♠'), ('8', '♠'), ('7', '♠'), ('6', '♠')]))
+            
+    print(blotkarz_wins, figurant_wins)
+    print(f"Blotkarz wins: {blotkarz_wins/n}")
+    print(f"Figurant wins: {figurant_wins/n}")
+
+
+main()
