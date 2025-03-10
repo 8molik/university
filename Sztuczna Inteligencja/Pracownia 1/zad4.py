@@ -1,3 +1,6 @@
+# Program implementuje funkcję opt_dist, która minimalizuje 
+# liczbę zmian bitów (0 ↔ 1) w ciągu binarnym, tak
+# aby utworzyć dokładnie jeden blok jedynek o długości D.
 
 def opt_dist(line, D):
     n = len(line)

@@ -1,3 +1,8 @@
+# Program symuluje grę pokerową między dwoma graczami: Blotkarzem i Figurantem.
+# Gracz Figurant losuje 5 kart z talii zawierającej asy, króle, damy i walety (wyższe karty),
+# a Blotkarz losuje 5 kart z talii zawierającej pozostałe karty.
+# Program porównuje siłę układów kart obu graczy, stosując uproszczone zasady pokerowe.
+
 import random
 from collections import Counter
 
