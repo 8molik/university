@@ -42,3 +42,4 @@
 * Bazy Danych
 * Sieci Komputerowe
 * Kurs: Tworzenie Aplikacji Frontendowych
+* Seminarium: Hakowanie Dla Każdego
