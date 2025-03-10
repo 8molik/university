@@ -78,12 +78,9 @@ def main(n=10000, discard_count=0):
             blotkarz_wins += 1
         else: 
             figurant_wins += 1
-
-    print(calculate_hand_score([('10', '♠'), ('6', '♠'), ('8', '♠'), ('7', '♠'), ('6', '♠')]))
-            
+                    
     print(blotkarz_wins, figurant_wins)
     print(f"Blotkarz wins: {blotkarz_wins/n}")
     print(f"Figurant wins: {figurant_wins/n}")
-
 
 main()
