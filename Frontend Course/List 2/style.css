@@ -12,11 +12,11 @@ h1 {
     text-align: center;
 }
 
-p {
+#challenge1 p {
     margin: 1rem;
 }
 
-.box:nth-child(1) {
+#challenge2 .box:nth-child(1) {
     width: 100px;
     height: 100px;
     margin: 10px;
@@ -24,11 +24,11 @@ p {
     background-color: lightgreen;
 }
 
-.box:nth-child(1):hover {
+#challenge2 .box:nth-child(1):hover {
     background-color: pink;
 }
 
-.box:nth-child(2) {
+#challenge2 .box:nth-child(2) {
     width: 80px;
     height: 80px;
     margin: 10px;
@@ -37,13 +37,13 @@ p {
     border-width: 10px;
     border-style: solid;
 }
-
-.box:nth-child(2):hover {
+ 
+#challenge2 .box:nth-child(2):hover {
     background-color: black;
     border-color: lightslategray;
 }
 
-.box:nth-child(3) {
+#challenge2 .box:nth-child(3) {
     margin: 10px;
     width: 100px;
     height: 0; 
@@ -54,11 +54,47 @@ p {
     border-style: solid;
 }
 
-.box:nth-child(3):hover {
+#challenge2 .box:nth-child(3):hover {
     border-bottom-color: white; 
     border-top-color: red; 
 }
 
-a {
+#challenge3 a {
     color: darkblue;
+    text-decoration: underline;
+}
+
+#challenge3 a:visited {
+    color: lightslategray;
+}
+
+#challenge3 a:hover {
+    color: red;
+    font-weight: bold;
+}
+
+#challenge3 li { 
+    list-style-type:  "🍔 ";
+}
+
+#challenge4 p:empty {
+    display: none;
+}
+
+#challenge4 input:disabled {
+    display: none;
+}
+
+#challenge4 a[href*="recipe"] {
+    display: none;
+}
+
+#challenge5 img {
+    width: 70%;
+    min-height: 100px;
+    max-width: 500px;
+}
+
+#challenge5 figcaption {
+    font-size: 0.7rem;
 }
