@@ -28,3 +28,17 @@
 * Rachunek Prawdopodobieństwa i Statystyka
 * Ochrona własności intelektualnej
 * Od Mordoru po Matrix. Fantastyczna filozofia polityki
+
+### Sesmestr 5:
+* Kurs Projektowania Aplikacji z Bazami Danych
+* Machine Learning
+* Kurs ProjektowaniaAaplikacji ASP.NET
+* Inżynieria Oprogramowania
+* Programowanie Współbieżne
+* Kurs: Praktyczne Aspekty Rozwoju Oprogramowania
+
+### Semestr 6:
+* Sztuczna Inteligencja
+* Bazy Danych
+* Sieci Komputerowe
+* Kurs: Tworzenie Aplikacji Frontendowych
