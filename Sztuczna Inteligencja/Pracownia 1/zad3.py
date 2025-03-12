@@ -10,6 +10,11 @@ colors = ['♠', '♦', '♣', '♥']
 numbers = ['2', '3', '4', '5', '6', '7', '8', '9', '10', 'W', 'D', 'K', 'A']
 
 blotkarz_cards = [(numbers[j], colors[i]) for i in range(len(colors)) for j in range(9)]
+# blotkarz_cards = [(numbers[j], colors[i]) for i in range(len(colors)) for j in range(3)]
+# blotkarz_cards = [(numbers[j], colors[i]) for i in range(len(colors)) for j in range(4)]
+# blotkarz_cards = [(numbers[j], colors[i]) for i in range(len(colors)) for j in range(5)]
+# blotkarz_cards = [(numbers[j], colors[i]) for i in range(len(colors)) for j in range(6)]
+
 figurant_cards = [(numbers[j], colors[i]) for i in range(len(colors)) for j in range(9, len(numbers))]
 
 # Simplified rules
