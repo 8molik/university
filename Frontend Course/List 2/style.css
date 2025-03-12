@@ -17,8 +17,7 @@ h1 {
 }
 
 #challenge2 .box:nth-child(1) {
-    width: 100px;
-    height: 100px;
+    box-sizing: border-box;
     margin: 10px;
     border-radius: 50%;
     background-color: lightgreen;
@@ -29,8 +28,7 @@ h1 {
 }
 
 #challenge2 .box:nth-child(2) {
-    width: 80px;
-    height: 80px;
+    box-sizing: border-box;
     margin: 10px;
     background-color: lightslategray;
     border-color: black;
@@ -44,9 +42,8 @@ h1 {
 }
 
 #challenge2 .box:nth-child(3) {
+    box-sizing: border-box;
     margin: 10px;
-    width: 100px;
-    height: 0; 
     border-top: 50px white; 
     border-bottom: 50px red; 
     border-left: 0px transparent;
