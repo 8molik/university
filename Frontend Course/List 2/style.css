@@ -74,15 +74,13 @@ h1 {
     list-style-type:  "🍔 ";
 }
 
-#challenge4 p:empty {
-    display: none;
-}
-
-#challenge4 input:disabled {
-    display: none;
-}
-
+/* #challenge4 p:empty
+#challenge4 input:disabled
 #challenge4 a[href*="recipe"] {
+    display: none;
+} */
+
+#challenge4 :is(p:empty, input:disabled, a[href*="recipe"]) {
     display: none;
 }
 
