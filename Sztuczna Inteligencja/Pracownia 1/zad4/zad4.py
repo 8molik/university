@@ -25,7 +25,6 @@ def opt_dist(line, D):
         if line[l] == '1':
             ones_inside -= 1
             ones_outside += 1
-
         if line[l] == '0':
             zeros_inside -= 1
 
@@ -41,10 +40,11 @@ def opt_dist(line, D):
 
     return result
 
+def main():
+    with open("zad4_input.txt", "r") as f1:
+        with open("zad4_output.txt", "w") as f2:
+            for line in f1:
+                line = line.split()
+                print(opt_dist(line[0], int(line[1])), file=f2)
 
-print(opt_dist('0010001000', 5))
-print(opt_dist('0010001000', 4))
-print(opt_dist('0010001000', 3))
-print(opt_dist('0010001000', 2))
-print(opt_dist('0010001000', 1))
-print(opt_dist('0010001000', 0))
+main()
