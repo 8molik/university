@@ -3,7 +3,6 @@ import random
 def opt_dist(line, D):
     n = len(line)
     l = r = 0
-
     ones_inside = zeros_inside = ones_outside = 0
 
     for i in range(n):
@@ -67,8 +66,9 @@ def is_row_valid(row, row_spec):
     
     return blocks == row_spec
 
-def solve_nonogram(rows_spec, cols_spec, rows, cols, grid, max_iterations=10000):
+def solve_nonogram(rows_spec, cols_spec, rows, cols, grid, max_iterations=1000):
     i = 0
+    no_improvement_count = 0
 
     while i < max_iterations:
         i += 1
@@ -79,10 +79,18 @@ def solve_nonogram(rows_spec, cols_spec, rows, cols, grid, max_iterations=10000)
         if rows_valid and cols_valid:
             return grid
         
+        # Jeżeli nie ma poprawy - losujemy od nowa
+        if no_improvement_count >= 100:
+            grid = [[random.randint(0, 1) for _ in range(cols)] for _ in range(rows)]
+            no_improvement_count = 0
+            continue
+        
         invalid_rows = [i for i in range(rows) if not is_row_valid([grid[i][j] for j in range(cols)], rows_spec[i])]
         invalid_cols = [j for j in range(cols) if not is_row_valid([grid[i][j] for i in range(rows)], cols_spec[j])]
         
+        # Naprawiamy wiersz
         if invalid_rows and (not invalid_cols or random.random() < 0.5):
+            # Wybierz randomowy wiersz
             row_idx = random.choice(invalid_rows)
             best_improvement = -float('inf')
             best_col = -1
@@ -90,12 +98,15 @@ def solve_nonogram(rows_spec, cols_spec, rows, cols, grid, max_iterations=10000)
             current_row = [grid[row_idx][j] for j in range(cols)]
             current_row_dist = opt_dist(current_row, rows_spec[row_idx])
             
+            # Przejdź po kolumnach i znajdź optymalny bit
             for col_idx in range(cols):
                 new_row = current_row.copy()
                 new_row[col_idx] = 1 - new_row[col_idx]
                 
+                # Oblicz poprawę
                 row_improvement = current_row_dist - opt_dist(new_row, rows_spec[row_idx])
                 
+                # Sprawdź wpływ na kolumnę
                 current_col = [grid[i][col_idx] for i in range(rows)]
                 current_col_dist = opt_dist(current_col, cols_spec[col_idx])
                 
@@ -115,6 +126,8 @@ def solve_nonogram(rows_spec, cols_spec, rows, cols, grid, max_iterations=10000)
                     no_improvement_count = 0
                 else:
                     no_improvement_count += 1
+
+        # Naprawiamy kolumnę
         else:
             col_idx = random.choice(invalid_cols)
             best_improvement = -float('inf')
