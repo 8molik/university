@@ -58,11 +58,10 @@ def compare_strength(blotkarz, figurant):
     return 'blotkarz' if blotkarz_score > figurant_score else 'figurant'
 
 
-def main(n=10000, discard_count=0):
+def main(n=100000, discard_count=0):
     figurant_wins = 0
     blotkarz_wins = 0 
     for i in range(n):
-        # Create random hands
         figurant_hand = random.sample(figurant_cards, 5)
         blotkarz_hand = random.sample(blotkarz_cards, 5)
         # blotkarz_hand = [('10', '♠'), ('9', '♠'), ('8', '♠'), ('7', '♠'), ('6', '♠')] # 100% zwycięstw
