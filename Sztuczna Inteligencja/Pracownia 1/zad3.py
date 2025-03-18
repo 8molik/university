@@ -17,7 +17,7 @@ blotkarz_cards = [(numbers[j], colors[i]) for i in range(len(colors)) for j in r
 
 figurant_cards = [(numbers[j], colors[i]) for i in range(len(colors)) for j in range(9, len(numbers))]
 
-# Simplified rules
+# Uproszczone zasady
 def calculate_hand_score(hand):
     hand = sorted(hand, key=lambda x: numbers.index(x[0]), reverse=True)
     card_counts = Counter(card[0] for card in hand)
@@ -50,8 +50,8 @@ def calculate_hand_score(hand):
     else:
         return 1
 
-# We ignore rule of the strongest card, since 
-# figurant cards are always stronger, than blotkarz cards
+# Ignorujemy zasadę najsilniejszej karty, ponieważ
+# karty Figuranta zawsze są silniejsze od kart Blotkarza. 
 def compare_strength(blotkarz, figurant):
     blotkarz_score = calculate_hand_score(blotkarz)
     figurant_score = calculate_hand_score(figurant)
