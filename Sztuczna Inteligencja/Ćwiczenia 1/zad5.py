@@ -41,6 +41,7 @@ def calculate_hand_score(hand):
     else:
         return 1
 
+
 # Ignorujemy zasadę najsilniejszej karty, ponieważ
 # karty Figuranta zawsze są silniejsze od kart Blotkarza. 
 def compare_strength(blotkarz, figurant):
@@ -77,7 +78,6 @@ def calculate_probabilities():
             blotkarz_win_prob += figurant_probs[j] * blotkarz_probs[i]
 
     return blotkarz_win_prob
-
 
 
 def main():
