@@ -110,7 +110,7 @@ h3 {
     float: left;
 }
 
-#gallery .gallery__wrapper{
+#gallery .gallery__wrapper {
     display: grid;
     gap: 1rem;
     grid-template-columns: 1fr 1fr 1fr;
@@ -187,6 +187,7 @@ h3 {
     display: flex;      
     justify-content: center; 
     align-items: center;
-    top: 10px;
-    left: 10px;
+    top: 170px;
+    left: 270px;
+    z-index: 1;
 }
