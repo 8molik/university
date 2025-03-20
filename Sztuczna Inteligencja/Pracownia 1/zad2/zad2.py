@@ -1,5 +1,4 @@
 def find_all_words(sentence, S):
-    """Function finds best way to split given sentence."""
     n = len(sentence)
 
     # dp[i] - Maksymalna suma kwadratów długości słów dla prefiksu od 0 do i, jeśli istnieje podział
