@@ -11,10 +11,13 @@
 
 int socket_fd = socket(AF_INET, SOCK_RAW, IPPROTO_ICMP);
 struct sockaddr_in dest_addr;
+
+// Constants
 const int RECV_TIMEOUT_MS = 1000;
 const int NUMBER_OF_PACKETS = 3;
 const int MAX_TTL = 30;
 
+// Function to compute ICMP checksum
 uint16_t compute_icmp_checksum(const void *buff, int length) {
     const uint16_t* ptr = static_cast<const uint16_t*>(buff);
     uint32_t sum = 0;
@@ -25,6 +28,7 @@ uint16_t compute_icmp_checksum(const void *buff, int length) {
     return ~(sum + (sum >> 16U));
 }
 
+// ICMP header structure for macOS compatibility
 #if defined(__APPLE__)
 struct icmphdr {
     uint8_t type;
@@ -39,10 +43,15 @@ struct icmphdr {
 };
 #define ICMP_ECHO 8
 #endif
+
+// Function to send ICMP echo request
 void send_echo_request(int ttl, int sequence) {
     struct icmphdr icmp_header;
+
+    // Zero out the packet structure
     memset(&icmp_header, 0, sizeof(icmp_header));
 
+    // Fill in ICMP header
     icmp_header.type = ICMP_ECHO; // Type 8
     icmp_header.code = 0;
     icmp_header.un.echo.id = htons(getpid() & 0xffff);
@@ -62,33 +71,37 @@ struct ResponsePacket {
     int time;
 };
 
+// Function to receive ICMP echo response
 std::vector<ResponsePacket> receive_response() {
     auto start_time = std::chrono::high_resolution_clock::now();
-    int received_responses = 0;
-
+    
     struct pollfd ps;
     ps.fd = socket_fd;
     ps.events = POLLIN;
     ps.revents = 0;
-
+    
     std::vector<ResponsePacket> responses;
+    int received_responses = 0;
     
     while (received_responses < NUMBER_OF_PACKETS) {
         int remaining_time = RECV_TIMEOUT_MS - std::chrono::duration_cast<std::chrono::milliseconds>(std::chrono::high_resolution_clock::now() - start_time).count();
         
+        // Timeout
         if (remaining_time <= 0) {
             break;
         }
 
         int ready = poll(&ps, 1, RECV_TIMEOUT_MS);
 
+        // Check poll status
         if (ready < 0) {
-            std::cerr << "Error in poll" << std::endl;
+            std::cerr << "receive_response: Error in poll!" << std::endl;
             break;
         } else if (ready == 0) {
             break;
         }
 
+        // ready is non-zero, so data is available to read
         if (ps.revents == POLLIN) {
             ResponsePacket response;
             uint8_t buffer[IP_MAXPACKET];
@@ -113,18 +126,22 @@ std::vector<ResponsePacket> receive_response() {
 
 int main() {
     std::string destination_ip = "8.8.8.8";
+
     if (socket_fd < 0) {
-        std::cerr << "Error while creating socket" << std::endl;
+        std::cerr << "main: Error while creating socket! (probably missing sudo)" << std::endl;
         return 1;
     }
+
+    // Zero out the destination address structure
     memset(&dest_addr, 0, sizeof(dest_addr));
 
     dest_addr.sin_family = AF_INET;
     dest_addr.sin_addr.s_addr = inet_addr(destination_ip.c_str());
 
+    // Main loop
     for (int ttl = 1; ttl <= MAX_TTL; ttl++) {
         if (setsockopt(socket_fd, IPPROTO_IP, IP_TTL, &ttl, sizeof(ttl)) < 0) {
-            std::cerr << "Error setting TTL option" << std::endl;
+            std::cerr << "main: Error setting TTL option!" << std::endl;
             return 1;
         }
 
@@ -135,7 +152,7 @@ int main() {
         auto responses = receive_response();
 
         if (responses.size() == 0) {
-            std::cout << ttl << "  * * *  Request timed out." << std::endl;
+            std::cout << ttl << " *" << std::endl;
         } else { 
             std::cout << responses[0].time << "  " << responses[0].ip << std::endl;
             if (responses[0].ip == destination_ip) {
@@ -143,6 +160,5 @@ int main() {
             }
         }
     }
-
     return 0;
 }
