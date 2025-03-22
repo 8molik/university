@@ -8,6 +8,8 @@
 #include <cassert>
 #include <chrono>
 #include <poll.h>
+#include <vector>
+#include <unordered_set>
 
 int socket_fd = socket(AF_INET, SOCK_RAW, IPPROTO_ICMP);
 struct sockaddr_in dest_addr;
@@ -16,6 +18,8 @@ struct sockaddr_in dest_addr;
 const int RECV_TIMEOUT_MS = 1000;
 const int NUMBER_OF_PACKETS = 3;
 const int MAX_TTL = 30;
+
+const int ICMP_TIME_EXCEEDED = 11;
 
 // Function to compute ICMP checksum
 uint16_t compute_icmp_checksum(const void *buff, int length) {
@@ -84,9 +88,8 @@ std::vector<ResponsePacket> receive_response() {
     int received_responses = 0;
     
     while (received_responses < NUMBER_OF_PACKETS) {
-        int remaining_time = RECV_TIMEOUT_MS - std::chrono::duration_cast<std::chrono::milliseconds>(std::chrono::high_resolution_clock::now() - start_time).count();
-        
         // Timeout
+        double remaining_time = RECV_TIMEOUT_MS - std::chrono::duration_cast<std::chrono::milliseconds>(std::chrono::high_resolution_clock::now() - start_time).count();
         if (remaining_time <= 0) {
             break;
         }
@@ -116,16 +119,57 @@ std::vector<ResponsePacket> receive_response() {
             } else {
                 received_responses++;
                 response.ip = inet_ntoa(recv_addr.sin_addr);
-                response.time = std::chrono::duration_cast<std::chrono::milliseconds>(std::chrono::high_resolution_clock::now() - start_time).count();
+                response.time = std::chrono::duration_cast<std::chrono::microseconds>(std::chrono::high_resolution_clock::now() - start_time).count();
+                
+                // struct ip* ip_header = (struct ip*) buffer;
+                // int ip_header_len = ip_header->ip_hl << 2;
+                // struct icmphdr* icmp_header_reply = (struct icmphdr*) (buffer + ip_header_len);
+                responses.push_back(response);
+
+                // if (icmp_header_reply->type == ICMP_ECHOREPLY) {
+                //     if (icmp_header_reply->un.echo.id == htons(getpid() & 0xffff)) {
+                //         responses.push_back(response);
+                //     }
+                // }
+                // else if (icmp_header_reply->type == ICMP_TIME_EXCEEDED) {
+                //     // Check if the received packet is an ICMP time exceeded
+                //     struct ip* ip_header_inner = (struct ip*) (buffer + ip_header_len + 8);
+                //     response.ip = inet_ntoa(ip_header_inner->ip_src);
+                //     responses.push_back(response);
+                // }
+            
             }
-            responses.push_back(response);
         }
     }
     return responses;
 }
 
+void display(std::vector<ResponsePacket> responses) {
+    if (responses.size() == 0) {
+        std::cout << "*" << std::endl;
+    } else {
+        double avg_time = 0;
+        std::unordered_set<std::string> unique_ips;
+
+        for (const auto& response : responses) {
+            avg_time += response.time;
+            unique_ips.insert(response.ip);
+        }
+        avg_time /= responses.size();
+        
+        for (const auto& ip : unique_ips) {
+            std::cout << ip << " "; 
+        }
+        if (responses.size() == 3) {
+            std::cout << avg_time/1000 << "ms" << std::endl;
+        } else {
+            std::cout << "???" << std::endl;
+        }
+    }
+}
+
 int main() {
-    std::string destination_ip = "8.8.8.8";
+    std::string destination_ip = "23.215.0.136";
 
     if (socket_fd < 0) {
         std::cerr << "main: Error while creating socket! (probably missing sudo)" << std::endl;
@@ -149,16 +193,14 @@ int main() {
             send_echo_request(ttl, i);
         }
         
+        std::cout << ttl << ". ";
         auto responses = receive_response();
+        display(responses);
 
-        if (responses.size() == 0) {
-            std::cout << ttl << " *" << std::endl;
-        } else { 
-            std::cout << responses[0].time << "  " << responses[0].ip << std::endl;
-            if (responses[0].ip == destination_ip) {
-                return 0;
-            }
+        if (responses.size() > 0 && responses[0].ip == destination_ip) {
+            break;
         }
     }
+    close(socket_fd);
     return 0;
 }
