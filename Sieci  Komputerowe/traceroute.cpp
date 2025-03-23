@@ -71,7 +71,7 @@ int send_echo_request(int socket_fd, struct sockaddr_in& dest_addr, int ttl, int
     }
 
     ssize_t bytes_sent = sendto(socket_fd, &icmp_header, sizeof(icmp_header), 0, 
-                                 (struct sockaddr*)&dest_addr, sizeof(dest_addr));
+                                 reinterpret_cast<struct sockaddr*>(&dest_addr), sizeof(dest_addr));
 
     if (bytes_sent < 0) {
         std::cerr << "send_echo_request: Error while sending packet!" << std::endl;
@@ -117,14 +117,14 @@ std::vector<ResponsePacket> receive_response(int socket_fd) {
             socklen_t recv_addr_len = sizeof(recv_addr);
             
             ssize_t bytes_received = recvfrom(socket_fd, buffer, IP_MAXPACKET, MSG_DONTWAIT, 
-                                            (struct sockaddr*)&recv_addr, &recv_addr_len);
+                                            reinterpret_cast<struct sockaddr*>(&recv_addr), &recv_addr_len);
                                             
             if (bytes_received < 0) {
                 std::cerr << "receive_response: Error while receiving packet!" << std::endl;
             } else {
-                struct ip* ip_header = (struct ip*) buffer;
+                struct ip* ip_header = reinterpret_cast<struct ip*>(buffer);
                 int ip_header_len = ip_header->ip_hl << 2;
-                struct icmphdr* icmp_header_reply = (struct icmphdr*) (buffer + ip_header_len);
+                struct icmphdr* icmp_header_reply = reinterpret_cast<struct icmphdr*>(buffer + ip_header_len);
 
                 if (icmp_header_reply->type == ICMP_ECHOREPLY) {
                     if (icmp_header_reply->un.echo.id == htons(getpid() & 0xffff)) {
@@ -136,11 +136,11 @@ std::vector<ResponsePacket> receive_response(int socket_fd) {
                 }
                 else if (icmp_header_reply->type == ICMP_TIME_EXCEEDED) {
                     // Check if the received packet is an ICMP time exceeded
-                    struct ip* ip_header_inner = (struct ip*) (buffer + ip_header_len + 8);
+                    struct ip* ip_header_inner = reinterpret_cast<struct ip*>(buffer + ip_header_len + 8);
                     int ip_header_inner_len = ip_header_inner->ip_hl << 2;
                     
                     // Get the original ICMP header from our echo request
-                    struct icmphdr* original_icmp = (struct icmphdr*) (buffer + ip_header_len + 8 + ip_header_inner_len);
+                    struct icmphdr* original_icmp = reinterpret_cast<struct icmphdr*>(buffer + ip_header_len + 8 + ip_header_inner_len);
                                         
                     if (original_icmp->type == ICMP_ECHO && 
                         original_icmp->un.echo.id == htons(getpid() & 0xffff)) {
