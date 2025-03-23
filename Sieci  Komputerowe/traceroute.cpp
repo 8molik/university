@@ -10,14 +10,15 @@
 #include <poll.h>
 #include <vector>
 #include <unordered_set>
+#include <iomanip>
 
 int socket_fd = socket(AF_INET, SOCK_RAW, IPPROTO_ICMP);
 struct sockaddr_in dest_addr;
 
 // Constants
-const int RECV_TIMEOUT_MS = 1000;
-const int NUMBER_OF_PACKETS = 3;
-const int MAX_TTL = 30;
+static constexpr int RECV_TIMEOUT_MS = 1000;
+static constexpr int NUMBER_OF_PACKETS = 3;
+static constexpr int MAX_TTL = 30;
 
 const int ICMP_TIME_EXCEEDED = 11;
 
@@ -49,18 +50,21 @@ struct icmphdr {
 #endif
 
 // Function to send ICMP echo request
-void send_echo_request(int ttl, int sequence) {
+int send_echo_request(int ttl, int sequence) {
     struct icmphdr icmp_header;
-
-    // Zero out the packet structure
-    memset(&icmp_header, 0, sizeof(icmp_header));
 
     // Fill in ICMP header
     icmp_header.type = ICMP_ECHO; // Type 8
     icmp_header.code = 0;
     icmp_header.un.echo.id = htons(getpid() & 0xffff);
     icmp_header.un.echo.sequence = htons(sequence);
+    icmp_header.checksum = 0;
     icmp_header.checksum = compute_icmp_checksum((uint16_t*)&icmp_header, sizeof(icmp_header));
+
+    if (setsockopt(socket_fd, IPPROTO_IP, IP_TTL, &ttl, sizeof(ttl)) < 0) {
+        std::cerr << "main: Error setting TTL option!" << std::endl;
+        return -1;
+    }
 
     ssize_t bytes_sent = sendto(socket_fd, &icmp_header, sizeof(icmp_header), 0, 
                                  (struct sockaddr*)&dest_addr, sizeof(dest_addr));
@@ -68,6 +72,7 @@ void send_echo_request(int ttl, int sequence) {
     if (bytes_sent < 0) {
         std::cerr << "send_echo_request: Error while sending packet!" << std::endl;
     }
+    return 0;
 }
 
 struct ResponsePacket {
@@ -117,26 +122,34 @@ std::vector<ResponsePacket> receive_response() {
             if (bytes_received < 0) {
                 std::cerr << "receive_response: Error while receiving packet!" << std::endl;
             } else {
-                received_responses++;
-                response.ip = inet_ntoa(recv_addr.sin_addr);
-                response.time = std::chrono::duration_cast<std::chrono::microseconds>(std::chrono::high_resolution_clock::now() - start_time).count();
-                
-                // struct ip* ip_header = (struct ip*) buffer;
-                // int ip_header_len = ip_header->ip_hl << 2;
-                // struct icmphdr* icmp_header_reply = (struct icmphdr*) (buffer + ip_header_len);
-                responses.push_back(response);
+                struct ip* ip_header = (struct ip*) buffer;
+                int ip_header_len = ip_header->ip_hl << 2;
+                struct icmphdr* icmp_header_reply = (struct icmphdr*) (buffer + ip_header_len);
 
-                // if (icmp_header_reply->type == ICMP_ECHOREPLY) {
-                //     if (icmp_header_reply->un.echo.id == htons(getpid() & 0xffff)) {
-                //         responses.push_back(response);
-                //     }
-                // }
-                // else if (icmp_header_reply->type == ICMP_TIME_EXCEEDED) {
-                //     // Check if the received packet is an ICMP time exceeded
-                //     struct ip* ip_header_inner = (struct ip*) (buffer + ip_header_len + 8);
-                //     response.ip = inet_ntoa(ip_header_inner->ip_src);
-                //     responses.push_back(response);
-                // }
+                if (icmp_header_reply->type == ICMP_ECHOREPLY) {
+                    if (icmp_header_reply->un.echo.id == htons(getpid() & 0xffff)) {
+                        response.ip = inet_ntoa(recv_addr.sin_addr);
+                        response.time = std::chrono::duration_cast<std::chrono::microseconds>(std::chrono::high_resolution_clock::now() - start_time).count();
+                        responses.push_back(response);
+                        received_responses++;
+                    }
+                }
+                else if (icmp_header_reply->type == ICMP_TIME_EXCEEDED) {
+                    // Check if the received packet is an ICMP time exceeded
+                    struct ip* ip_header_inner = (struct ip*) (buffer + ip_header_len + 8);
+                    int ip_header_inner_len = ip_header_inner->ip_hl << 2;
+                    
+                    // Get the original ICMP header from our echo request
+                    struct icmphdr* original_icmp = (struct icmphdr*) (buffer + ip_header_len + 8 + ip_header_inner_len);
+                                        
+                    if (original_icmp->type == ICMP_ECHO && 
+                        original_icmp->un.echo.id == htons(getpid() & 0xffff)) {
+                            response.ip = inet_ntoa(recv_addr.sin_addr);
+                            response.time = std::chrono::duration_cast<std::chrono::microseconds>(std::chrono::high_resolution_clock::now() - start_time).count();
+                            responses.push_back(response);
+                            received_responses++;
+                    }
+                }
             
             }
         }
@@ -158,10 +171,10 @@ void display(std::vector<ResponsePacket> responses) {
         avg_time /= responses.size();
         
         for (const auto& ip : unique_ips) {
-            std::cout << ip << " "; 
+            std::cout << ip << "  "; 
         }
         if (responses.size() == 3) {
-            std::cout << avg_time/1000 << "ms" << std::endl;
+            std::cout << std::fixed << std::setprecision(2) <<avg_time/1000  << "ms" << std::endl;
         } else {
             std::cout << "???" << std::endl;
         }
@@ -169,7 +182,7 @@ void display(std::vector<ResponsePacket> responses) {
 }
 
 int main() {
-    std::string destination_ip = "23.215.0.136";
+    std::string destination_ip = "8.8.8.8";
 
     if (socket_fd < 0) {
         std::cerr << "main: Error while creating socket! (probably missing sudo)" << std::endl;
@@ -184,13 +197,11 @@ int main() {
 
     // Main loop
     for (int ttl = 1; ttl <= MAX_TTL; ttl++) {
-        if (setsockopt(socket_fd, IPPROTO_IP, IP_TTL, &ttl, sizeof(ttl)) < 0) {
-            std::cerr << "main: Error setting TTL option!" << std::endl;
-            return 1;
-        }
-
         for (int i = 1; i <= NUMBER_OF_PACKETS; i++) {
-            send_echo_request(ttl, i);
+            int status = send_echo_request(ttl, ttl + i);
+            if (status != 0) {
+                return 1;
+            }
         }
         
         std::cout << ttl << ". ";
