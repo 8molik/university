@@ -153,7 +153,7 @@ std::vector<ResponsePacket> receive_response(int socket_fd) {
 
 // Function to display the responses
 void display_responses(std::vector<ResponsePacket> responses, int ttl) {
-    std::cout << ttl << ". ";
+    std::cout << std::setw(2) << std::right<<  ttl << ". ";
     if (responses.size() == 0) {
         std::cout << "*" << std::endl;
     } else {
@@ -167,11 +167,11 @@ void display_responses(std::vector<ResponsePacket> responses, int ttl) {
         avg_time /= responses.size();
         
         for (const auto& ip : unique_ips) {
-            std::cout << ip << "  "; 
+            std::cout << std::setw(17) << std::left << ip; 
         }
         
         if (responses.size() == 3) {
-            std::cout << std::fixed << std::setprecision(2) <<avg_time/1000  << "ms" << std::endl;
+            std::cout << std::setw(6) << std::fixed << std::setprecision(2) <<avg_time/1000  << "ms" << std::endl;
         } else {
             std::cout << "???" << std::endl;
         }
