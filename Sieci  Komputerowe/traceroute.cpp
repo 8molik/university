@@ -17,23 +17,6 @@ static constexpr int RECV_TIMEOUT_MS = 1000;
 static constexpr int NUMBER_OF_PACKETS = 3;
 static constexpr int MAX_TTL = 30;
 
-// ICMP header structure and constant for macOS compatibility
-const int ICMP_TIME_EXCEEDED = 11;
-#if defined(__APPLE__)
-struct icmphdr {
-    uint8_t type;
-    uint8_t code;
-    uint16_t checksum;
-    union {
-        struct {
-            uint16_t id;
-            uint16_t sequence;
-        } echo;
-    } un;
-};
-#define ICMP_ECHO 8
-#endif
-
 // Response packet structure
 struct ResponsePacket {
     std::string ip;
@@ -53,15 +36,15 @@ uint16_t compute_icmp_checksum(const void *buff, int length) {
 
 // Function to send ICMP echo request
 int send_echo_request(int socket_fd, struct sockaddr_in& dest_addr, int ttl, int sequence) {
-    struct icmphdr icmp_header;
+    struct icmp icmp_header;
 
     // Fill in ICMP header
-    icmp_header.type = ICMP_ECHO; // Type 8
-    icmp_header.code = 0;
-    icmp_header.un.echo.id = htons(getpid() & 0xffff);
-    icmp_header.un.echo.sequence = htons(sequence);
-    icmp_header.checksum = 0;
-    icmp_header.checksum = compute_icmp_checksum(reinterpret_cast<uint16_t*>(&icmp_header), sizeof(icmp_header));
+    icmp_header.icmp_type = ICMP_ECHO; // Type 8
+    icmp_header.icmp_code = 0;
+    icmp_header.icmp_id = htons(getpid() & 0xffff);
+    icmp_header.icmp_seq = htons(sequence);
+    icmp_header.icmp_cksum = 0;
+    icmp_header.icmp_cksum = compute_icmp_checksum(reinterpret_cast<uint16_t*>(&icmp_header), sizeof(icmp_header));
 
     if (setsockopt(socket_fd, IPPROTO_IP, IP_TTL, &ttl, sizeof(ttl )) < 0) {
         std::cerr << "main: Error setting TTL option!" << std::endl;
@@ -121,24 +104,24 @@ std::vector<ResponsePacket> receive_response(int socket_fd) {
             } else {
                 struct ip* ip_header_reply = reinterpret_cast<struct ip*>(buffer);
                 int ip_header_reply_len = ip_header_reply->ip_hl << 2;
-                struct icmphdr* icmp_header_reply = reinterpret_cast<struct icmphdr*>(buffer + ip_header_reply_len);
+                struct icmp* icmp_header_reply = reinterpret_cast<struct icmp*>(buffer + ip_header_reply_len);
 
-                if (icmp_header_reply->type == ICMP_ECHOREPLY) {
-                    if (icmp_header_reply->un.echo.id == htons(getpid() & 0xffff)) {
+                if (icmp_header_reply->icmp_type == ICMP_ECHOREPLY) {
+                    if (icmp_header_reply->icmp_id == htons(getpid() & 0xffff)) {
                         response.ip = inet_ntoa(ip_header_reply->ip_src);
                         response.time = std::chrono::duration_cast<std::chrono::microseconds>(std::chrono::high_resolution_clock::now() - start_time).count();
                         responses.push_back(response);
                         received_responses++;
                     }
                 }
-                else if (icmp_header_reply->type == ICMP_TIME_EXCEEDED) {
+                else if (icmp_header_reply->icmp_type == ICMP_TIMXCEED) {
                     // Extract the original IP header and ICMP header from the response
                     struct ip* original_ip_header = reinterpret_cast<struct ip*>(buffer + ip_header_reply_len + 8);
                     int original_ip_header_len = original_ip_header->ip_hl << 2;
-                    struct icmphdr* original_icmp_header = reinterpret_cast<struct icmphdr*>(buffer + ip_header_reply_len + 8 + original_ip_header_len);
+                    struct icmp* original_icmp_header = reinterpret_cast<struct icmp*>(buffer + ip_header_reply_len + 8 + original_ip_header_len);
                                         
-                    if (original_icmp_header->type == ICMP_ECHO && 
-                        original_icmp_header->un.echo.id == htons(getpid() & 0xffff)) {
+                    if (original_icmp_header->icmp_type == ICMP_ECHO && 
+                        original_icmp_header->icmp_id == htons(getpid() & 0xffff)) {
                         response.ip = inet_ntoa(ip_header_reply->ip_src);
                         response.time = std::chrono::duration_cast<std::chrono::microseconds>(std::chrono::high_resolution_clock::now() - start_time).count();
                         responses.push_back(response);
