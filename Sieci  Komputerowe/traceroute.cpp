@@ -12,28 +12,13 @@
 #include <unordered_set>
 #include <iomanip>
 
-int socket_fd = socket(AF_INET, SOCK_RAW, IPPROTO_ICMP);
-struct sockaddr_in dest_addr;
-
 // Constants
 static constexpr int RECV_TIMEOUT_MS = 1000;
 static constexpr int NUMBER_OF_PACKETS = 3;
 static constexpr int MAX_TTL = 30;
 
+// ICMP header structure and constant for macOS compatibility
 const int ICMP_TIME_EXCEEDED = 11;
-
-// Function to compute ICMP checksum
-uint16_t compute_icmp_checksum(const void *buff, int length) {
-    const uint16_t* ptr = static_cast<const uint16_t*>(buff);
-    uint32_t sum = 0;
-    assert (length % 2 == 0);
-    for (; length > 0; length -= 2)
-        sum += *ptr++;
-    sum = (sum >> 16U) + (sum & 0xffffU);
-    return ~(sum + (sum >> 16U));
-}
-
-// ICMP header structure for macOS compatibility
 #if defined(__APPLE__)
 struct icmphdr {
     uint8_t type;
@@ -49,8 +34,27 @@ struct icmphdr {
 #define ICMP_ECHO 8
 #endif
 
+// Response packet structure
+struct ResponsePacket {
+    std::string ip;
+    int time;
+};
+
+
+// Function to compute ICMP checksum
+uint16_t compute_icmp_checksum(const void *buff, int length) {
+    const uint16_t* ptr = static_cast<const uint16_t*>(buff);
+    uint32_t sum = 0;
+    assert (length % 2 == 0);
+    for (; length > 0; length -= 2)
+        sum += *ptr++;
+    sum = (sum >> 16U) + (sum & 0xffffU);
+    return ~(sum + (sum >> 16U));
+}
+
+
 // Function to send ICMP echo request
-int send_echo_request(int ttl, int sequence) {
+int send_echo_request(int socket_fd, struct sockaddr_in& dest_addr, int ttl, int sequence) {
     struct icmphdr icmp_header;
 
     // Fill in ICMP header
@@ -75,13 +79,9 @@ int send_echo_request(int ttl, int sequence) {
     return 0;
 }
 
-struct ResponsePacket {
-    std::string ip;
-    int time;
-};
 
 // Function to receive ICMP echo response
-std::vector<ResponsePacket> receive_response() {
+std::vector<ResponsePacket> receive_response(int socket_fd) {
     auto start_time = std::chrono::high_resolution_clock::now();
     
     struct pollfd ps;
@@ -157,7 +157,10 @@ std::vector<ResponsePacket> receive_response() {
     return responses;
 }
 
-void display(std::vector<ResponsePacket> responses) {
+
+// Function to display the responses
+void display_responses(std::vector<ResponsePacket> responses, int ttl) {
+    std::cout << ttl << ". ";
     if (responses.size() == 0) {
         std::cout << "*" << std::endl;
     } else {
@@ -173,6 +176,7 @@ void display(std::vector<ResponsePacket> responses) {
         for (const auto& ip : unique_ips) {
             std::cout << ip << "  "; 
         }
+        
         if (responses.size() == 3) {
             std::cout << std::fixed << std::setprecision(2) <<avg_time/1000  << "ms" << std::endl;
         } else {
@@ -183,6 +187,9 @@ void display(std::vector<ResponsePacket> responses) {
 
 int main() {
     std::string destination_ip = "8.8.8.8";
+
+    int socket_fd = socket(AF_INET, SOCK_RAW, IPPROTO_ICMP);
+    struct sockaddr_in dest_addr;
 
     if (socket_fd < 0) {
         std::cerr << "main: Error while creating socket! (probably missing sudo)" << std::endl;
@@ -198,20 +205,20 @@ int main() {
     // Main loop
     for (int ttl = 1; ttl <= MAX_TTL; ttl++) {
         for (int i = 1; i <= NUMBER_OF_PACKETS; i++) {
-            int status = send_echo_request(ttl, ttl + i);
+            int status = send_echo_request(socket_fd, dest_addr, ttl, ttl + i);
             if (status != 0) {
                 return 1;
             }
         }
         
-        std::cout << ttl << ". ";
-        auto responses = receive_response();
-        display(responses);
+        auto responses = receive_response(socket_fd);
+        display_responses(responses, ttl);
 
         if (responses.size() > 0 && responses[0].ip == destination_ip) {
             break;
         }
     }
+
     close(socket_fd);
     return 0;
 }
