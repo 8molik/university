@@ -4,6 +4,7 @@
 #include <string.h>
 #include <arpa/inet.h>
 #include <netinet/ip_icmp.h>
+#include <netinet/ip.h>
 #include <unistd.h>
 #include <cassert>
 #include <chrono>
@@ -37,7 +38,8 @@ uint16_t compute_icmp_checksum(const void *buff, int length) {
 // Function to send ICMP echo request
 int send_echo_request(int socket_fd, struct sockaddr_in& dest_addr, int ttl, int sequence) {
     struct icmp icmp_header;
-
+    memset(&icmp_header, 0, sizeof(icmp_header));
+    
     // Fill in ICMP header
     icmp_header.icmp_type = ICMP_ECHO; // Type 8
     icmp_header.icmp_code = 0;
