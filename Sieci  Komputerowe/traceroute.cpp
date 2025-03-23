@@ -40,7 +40,6 @@ struct ResponsePacket {
     int time;
 };
 
-
 // Function to compute ICMP checksum
 uint16_t compute_icmp_checksum(const void *buff, int length) {
     const uint16_t* ptr = static_cast<const uint16_t*>(buff);
@@ -52,7 +51,6 @@ uint16_t compute_icmp_checksum(const void *buff, int length) {
     return ~(sum + (sum >> 16U));
 }
 
-
 // Function to send ICMP echo request
 int send_echo_request(int socket_fd, struct sockaddr_in& dest_addr, int ttl, int sequence) {
     struct icmphdr icmp_header;
@@ -63,9 +61,9 @@ int send_echo_request(int socket_fd, struct sockaddr_in& dest_addr, int ttl, int
     icmp_header.un.echo.id = htons(getpid() & 0xffff);
     icmp_header.un.echo.sequence = htons(sequence);
     icmp_header.checksum = 0;
-    icmp_header.checksum = compute_icmp_checksum((uint16_t*)&icmp_header, sizeof(icmp_header));
+    icmp_header.checksum = compute_icmp_checksum(reinterpret_cast<uint16_t*>(&icmp_header), sizeof(icmp_header));
 
-    if (setsockopt(socket_fd, IPPROTO_IP, IP_TTL, &ttl, sizeof(ttl)) < 0) {
+    if (setsockopt(socket_fd, IPPROTO_IP, IP_TTL, &ttl, sizeof(ttl )) < 0) {
         std::cerr << "main: Error setting TTL option!" << std::endl;
         return -1;
     }
@@ -78,7 +76,6 @@ int send_echo_request(int socket_fd, struct sockaddr_in& dest_addr, int ttl, int
     }
     return 0;
 }
-
 
 // Function to receive ICMP echo response
 std::vector<ResponsePacket> receive_response(int socket_fd) {
@@ -108,10 +105,10 @@ std::vector<ResponsePacket> receive_response(int socket_fd) {
         } else if (ready == 0) {
             break;
         }
-
         // ready is non-zero, so data is available to read
         if (ps.revents == POLLIN) {
             ResponsePacket response;
+            
             uint8_t buffer[IP_MAXPACKET];
             struct sockaddr_in recv_addr;
             socklen_t recv_addr_len = sizeof(recv_addr);
@@ -122,41 +119,37 @@ std::vector<ResponsePacket> receive_response(int socket_fd) {
             if (bytes_received < 0) {
                 std::cerr << "receive_response: Error while receiving packet!" << std::endl;
             } else {
-                struct ip* ip_header = reinterpret_cast<struct ip*>(buffer);
-                int ip_header_len = ip_header->ip_hl << 2;
-                struct icmphdr* icmp_header_reply = reinterpret_cast<struct icmphdr*>(buffer + ip_header_len);
+                struct ip* ip_header_reply = reinterpret_cast<struct ip*>(buffer);
+                int ip_header_reply_len = ip_header_reply->ip_hl << 2;
+                struct icmphdr* icmp_header_reply = reinterpret_cast<struct icmphdr*>(buffer + ip_header_reply_len);
 
                 if (icmp_header_reply->type == ICMP_ECHOREPLY) {
                     if (icmp_header_reply->un.echo.id == htons(getpid() & 0xffff)) {
-                        response.ip = inet_ntoa(recv_addr.sin_addr);
+                        response.ip = inet_ntoa(ip_header_reply->ip_src);
                         response.time = std::chrono::duration_cast<std::chrono::microseconds>(std::chrono::high_resolution_clock::now() - start_time).count();
                         responses.push_back(response);
                         received_responses++;
                     }
                 }
                 else if (icmp_header_reply->type == ICMP_TIME_EXCEEDED) {
-                    // Check if the received packet is an ICMP time exceeded
-                    struct ip* ip_header_inner = reinterpret_cast<struct ip*>(buffer + ip_header_len + 8);
-                    int ip_header_inner_len = ip_header_inner->ip_hl << 2;
-                    
-                    // Get the original ICMP header from our echo request
-                    struct icmphdr* original_icmp = reinterpret_cast<struct icmphdr*>(buffer + ip_header_len + 8 + ip_header_inner_len);
+                    // Extract the original IP header and ICMP header from the response
+                    struct ip* original_ip_header = reinterpret_cast<struct ip*>(buffer + ip_header_reply_len + 8);
+                    int original_ip_header_len = original_ip_header->ip_hl << 2;
+                    struct icmphdr* original_icmp_header = reinterpret_cast<struct icmphdr*>(buffer + ip_header_reply_len + 8 + original_ip_header_len);
                                         
-                    if (original_icmp->type == ICMP_ECHO && 
-                        original_icmp->un.echo.id == htons(getpid() & 0xffff)) {
-                            response.ip = inet_ntoa(recv_addr.sin_addr);
-                            response.time = std::chrono::duration_cast<std::chrono::microseconds>(std::chrono::high_resolution_clock::now() - start_time).count();
-                            responses.push_back(response);
-                            received_responses++;
+                    if (original_icmp_header->type == ICMP_ECHO && 
+                        original_icmp_header->un.echo.id == htons(getpid() & 0xffff)) {
+                        response.ip = inet_ntoa(ip_header_reply->ip_src);
+                        response.time = std::chrono::duration_cast<std::chrono::microseconds>(std::chrono::high_resolution_clock::now() - start_time).count();
+                        responses.push_back(response);
+                        received_responses++;
                     }
                 }
-            
             }
         }
     }
     return responses;
 }
-
 
 // Function to display the responses
 void display_responses(std::vector<ResponsePacket> responses, int ttl) {
@@ -185,8 +178,19 @@ void display_responses(std::vector<ResponsePacket> responses, int ttl) {
     }
 }
 
-int main() {
-    std::string destination_ip = "8.8.8.8";
+int main(int argc, char* argv[]) {
+    if (argc != 2) {
+        std::cerr << "Usage: " << argv[0] << " <destination_ip>" << std::endl;
+        return 1;
+    }
+    std::string destination_ip = argv[1];
+
+    struct sockaddr_in sa;
+    int result = inet_pton(AF_INET, destination_ip.c_str(), &(sa.sin_addr));
+    if (result != 1) {
+        std::cerr << "main: Incorrect IP address! " << destination_ip << std::endl;
+        return 1;
+    }
 
     int socket_fd = socket(AF_INET, SOCK_RAW, IPPROTO_ICMP);
     struct sockaddr_in dest_addr;
