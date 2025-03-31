@@ -43,6 +43,7 @@ int send_echo_request(int socket_fd, struct sockaddr_in& dest_addr, int ttl, int
     // Fill in ICMP header
     icmp_header.icmp_type = ICMP_ECHO; // Type 8
     icmp_header.icmp_code = 0;
+    // Change to big endian
     icmp_header.icmp_id = htons(getpid() & 0xffff);
     icmp_header.icmp_seq = htons(sequence);
     icmp_header.icmp_cksum = 0;
@@ -67,6 +68,7 @@ std::vector<ResponsePacket> receive_response(int socket_fd) {
     auto start_time = std::chrono::high_resolution_clock::now();
     
     struct pollfd ps;
+    // Set up the pollfd structure to wait for socket_fd to become readable
     ps.fd = socket_fd;
     ps.events = POLLIN;
     ps.revents = 0;
@@ -81,6 +83,7 @@ std::vector<ResponsePacket> receive_response(int socket_fd) {
             break;
         }
 
+        // Arguments: file descriptor, number of file descriptors, timeout
         int ready = poll(&ps, 1, RECV_TIMEOUT_MS);
 
         // Check poll status
@@ -170,6 +173,7 @@ int main(int argc, char* argv[]) {
     }
     std::string destination_ip = argv[1];
 
+    // Converse the destination IP address to binary form
     struct sockaddr_in sa;
     int result = inet_pton(AF_INET, destination_ip.c_str(), &(sa.sin_addr));
     if (result != 1) {
