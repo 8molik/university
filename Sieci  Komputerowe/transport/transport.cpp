@@ -28,13 +28,14 @@ private:
     int socket_fd;
     struct sockaddr_in server_address;
 
-    int last_ack = -1;
+    int last_ack = -1; // Indeks ostatnio potwierdzonego segmentu
     int file_size = 0;
     int window_limit = SLIDING_WINDOW_SIZE;
     int total_segments = 0;
 
     std::ofstream output_file;
 
+    // Oblicza indeks w buforze na podstawie numeru segmentu
     int get_index(int frame) const {
         return frame % SLIDING_WINDOW_SIZE;
     }
@@ -52,7 +53,10 @@ private:
         if (start >= file_size) {
             std::cerr << "Request out of bounds: " << start << std::endl;
             return;
-        }       
+        }
+        // Obliczamy długość segmentu do wysłania
+        // Jeśli to ostatni segment, może być krótszy
+        // W przeciwnym razie długość to REQUEST_PACKET_SIZE
         int len = std::min(REQUEST_PACKET_SIZE, file_size - start);
         int idx = get_index(frame);
         last_sent[idx] = std::chrono::steady_clock::now();
@@ -61,6 +65,7 @@ private:
 
     // Odbiera pakiety z gniazda i zapisuje je w buforze, jeśli są poprawne
     void receive_packets() {
+        // Ustawiamy timeout na odbieranie pakietów
         fd_set fds;
         struct timeval tv{0, TIMEOUT_MS};
         FD_ZERO(&fds);
@@ -97,6 +102,7 @@ private:
             }
 
             // Sprawdzamy, czy segment jest w oknie przesuwającym
+            // Chcemy odebrać tylko segmenty, które są w oknie
             int frame = start / REQUEST_PACKET_SIZE;
             if (frame < last_ack + 1 || frame >= last_ack + 1 + SLIDING_WINDOW_SIZE) {
                 return;
@@ -118,6 +124,9 @@ private:
     void advance_window() {
         while (last_ack + 1 < total_segments && acknowledged[get_index(last_ack + 1)]) {
             int idx = get_index(last_ack + 1);
+            // Długość segmentu do zapisania
+            // Jeśli to ostatni segment, może być krótszy
+            // W przeciwnym razie długość to REQUEST_PACKET_SIZE
             int len = std::min(REQUEST_PACKET_SIZE, file_size - (last_ack + 1) * REQUEST_PACKET_SIZE);
             output_file.write(buffers[idx].data(), len);
             acknowledged[idx] = false;
@@ -195,11 +204,13 @@ public:
     }
 
     void download_file() {
-        total_segments = (file_size + REQUEST_PACKET_SIZE - 1) / REQUEST_PACKET_SIZE;
+        // Wysyłamy początkowe żądania
         for (int i = 0; i < window_limit; ++i) {
             request_segment(i);
         }
-
+        
+        // Odbieramy pakiety i przesuwamy okno
+        total_segments = (file_size + REQUEST_PACKET_SIZE - 1) / REQUEST_PACKET_SIZE;
         while (last_ack + 1 < total_segments) {
             receive_packets();
             advance_window();
